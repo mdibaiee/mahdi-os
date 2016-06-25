@@ -1,0 +1,15 @@
+[package]
+name = "mahdi_os"
+version = "0.1.0"
+authors = ["Mahdi Dibaiee <mdibaiee@aol.com>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+rlibc = "0.1.4"
+
+[profile.dev]
+panic = "abort"
+[profile.release]
+panic = "abort"
