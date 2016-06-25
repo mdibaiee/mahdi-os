@@ -13,6 +13,7 @@ start:
 
 	call set_up_page_tables
 	call enable_paging
+
 	call set_up_SSE
 
 	lgdt [gdt64.pointer]
@@ -118,7 +119,7 @@ set_up_page_tables:
 	cmp ecx, 512			 ; if counter == 512, the whole P2 table is mapped
 	jne .map_p2_table
 
-ret
+	ret
 
 enable_paging:
 	; load P4 to cr3 register (cpu uses this to access the P4 table)
@@ -169,7 +170,7 @@ section .rodata
 gdt64:
 	dq 0 ; zero entry
 .code: equ $ - gdt64
-	dq (1 << 44) | (1 << 47) | (1 << 41) | (1 << 43) | (1 << 54) ; code segment
+	dq (1 << 44) | (1 << 47) | (1 << 41) | (1 << 43) | (1 << 53) ; code segment
 .data equ $ - gdt64
 	dq (1 << 44) | (1 << 47) | (1 << 41) ; data segment
 .pointer:
