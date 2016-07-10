@@ -3,6 +3,8 @@
 #![feature(unique)]
 #![feature(const_fn)]
 
+#[macro_use]
+extern crate bitflags;
 extern crate rlibc;
 extern crate spin;
 extern crate multiboot2;
