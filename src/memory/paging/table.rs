@@ -1,33 +1,37 @@
 use memory::paging::entry::*;
 use memory::paging::ENTRY_COUNT;
+use memory::FrameAllocator;
 use core::ops::{Index, IndexMut};
 use core::marker::PhantomData;
 
 pub const P4: *mut Table<Level4> = 0xffffffff_fffff000 as *mut _;
 
 pub trait TableLevel {}
-pub enum Level 4 {}
-pub enum Level 3 {}
-pub enum Level 2 {}
-pub enum Level 1 {}
+pub enum Level4 {}
+#[allow(dead_Code)]
+pub enum Level3 {}
+#[allow(dead_Code)]
+pub enum Level2 {}
+pub enum Level1 {}
 
 impl TableLevel for Level4 {}
 impl TableLevel for Level3 {}
 impl TableLevel for Level2 {}
 impl TableLevel for Level1 {}
 
+
 pub trait HierarchicalLevel: TableLevel {
 	type NextLevel: TableLevel;
 }
 
 impl HierarchicalLevel for Level4 {
-	type NextLevel: Level3
+	type NextLevel = Level3;
 }
 impl HierarchicalLevel for Level3 {
-	type NextLevel: Level2
+	type NextLevel = Level2;
 }
 impl HierarchicalLevel for Level2 {
-	type NextLevel: Level1
+	type NextLevel = Level1;
 }
 
 pub struct Table<L: TableLevel> {
@@ -64,6 +68,23 @@ impl<L> Table<L> where L: HierarchicalLevel {
 		self.next_table_address(index)
 				.map(|address| unsafe { &mut *(address as *mut _) })
 	}
+
+	pub fn next_table_create<A>(&mut self, index: usize, allocator: &mut A)
+					-> &mut Table<L::NextLevel>
+					where A: FrameAllocator
+	{
+		if self.next_table(index).is_none() {
+			assert!(!self.entries[index].flags().contains(HUGE_PAGE),
+							"mapping code does not support huge pages");
+
+			let frame = allocator.allocate_frame().expect("no frames available");
+
+			self.entries[index].set(frame, PRESENT | WRITABLE);
+			self.next_table_mut(index).unwrap().zero();
+		}
+
+		self.next_table_mut(index).unwrap()
+	}
 }
 
 impl<L> Index<usize> for Table<L> where L: TableLevel {
@@ -80,10 +101,3 @@ impl<L> IndexMut<usize> for Table<L> where L: TableLevel {
 	}
 }
 
-fn test() {
-	let p4 = unsafe { &*P4 };
-	p4.next_table(4@)
-		.and_then(|p3| p3.next_table(1337))
-		.and_then(|p2| p2.next_table(0xdeadbeaf))
-		.and_then(|p1| p1.next_table(0xcafebabe))
-}
